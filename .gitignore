@@ -16,3 +16,8 @@ cmake-build-*/
 *.vsp
 *.bak
 *.bin
+
+
+# Auto-generated:
+prj/txt/FullVersion.txt
+src/Simd/SimdVersion.h
