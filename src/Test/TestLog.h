@@ -44,7 +44,7 @@ namespace Test
         void SetLevel(Level level);
         void SetEnableThreadId(bool enable);
         void SetEnablePrefix(bool enable);
-
+        void Write (Level level, const String & message, const char * filename, int line);
         void Write(Level level, const String & message);
 
         static Log s_log;
@@ -67,7 +67,7 @@ namespace Test
     { \
         std::stringstream ___ss; \
         ___ss << message; \
-        Test::Log::s_log.Write(Test::Log::level, ___ss.str()); \
+        Test::Log::s_log.Write(Test::Log::level, ___ss.str(),__FILE__,__LINE__); \
     }
 
 #endif// __TestLog_h__

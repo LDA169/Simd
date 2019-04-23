@@ -60,6 +60,13 @@ namespace Test
         _enablePrefix = enable;
     }
 
+    void Log::Write (Level level, const String & message, const char * filename, int line)
+    {
+        assert (filename && line>=0);
+        const auto lastSlash = std::string(filename).find_last_of ("\\/");
+        Write (level,std::string(&filename[(lastSlash>=0)?lastSlash+1:0])+":"+std::to_string(line)+" "+message);
+    }
+
     void Log::Write(Level level, const String & message)
     {
         std::stringstream ss;
