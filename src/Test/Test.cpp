@@ -25,6 +25,7 @@
 #include "Test/TestPerformance.h"
 #include "Test/TestUtils.h"
 #include "Test/TestLog.h"
+#include <atomic>
 
 namespace Test
 {
@@ -372,12 +373,16 @@ namespace Test
         Groups _groups;
         std::thread _thread;
         volatile double _progress;
+        const bool _stopOnError;
     public:
-        static volatile bool s_stopped;
 
-        Task(Groups::const_iterator begin, Groups::const_iterator end, bool start)
+        static std::atomic_flag s_no_error;
+        static std::atomic_flag s_running;
+
+        Task(Groups::const_iterator begin, Groups::const_iterator end, bool start, bool stopOnError)
             : _groups(begin, end)
             , _progress(0)
+            , _stopOnError(stopOnError)
         {
             if (start)
                 _thread = std::thread(&Task::Run, this);
@@ -398,7 +403,7 @@ namespace Test
 
         void Run()
         {
-            for (size_t i = 0; i < _groups.size() && !s_stopped; ++i)
+            for (size_t i = 0; i < _groups.size(); ++i)
             {
                 _progress = double(i) / double(_groups.size());
                 const Group & group = _groups[i];
@@ -407,15 +412,20 @@ namespace Test
                 TEST_LOG_SS(Info, group.name << "AutoTest is finished " << (result ? "successfully." : "with errors!") << std::endl);
                 if (!result)
                 {
-                    s_stopped = true;
+                    std::cout << "ERROR!" << std::endl;
                     TEST_LOG_SS(Error, "ERROR! TEST EXECUTION IS TERMINATED !" << std::endl);
-                    return;
+                    s_no_error.clear();
+                    if (_stopOnError) {
+                        s_running.clear();
+                        break;
+                    }
                 }
             }
             _progress = 1.0;
         }
     };
-    volatile bool Task::s_stopped = false;
+    std::atomic_flag Task::s_no_error = ATOMIC_FLAG_INIT;
+    std::atomic_flag Task::s_running = ATOMIC_FLAG_INIT;
     typedef std::shared_ptr<Task> TaskPtr;
     typedef std::vector<TaskPtr> TaskPtrs;
 
@@ -444,12 +454,16 @@ namespace Test
 
         bool printAlign;
 
+        bool stopFirstError;
+
         Options(int argc, char* argv[])
             : mode(Auto)
             , help(false)
             , testThreads(0)
             , workThreads(1)
             , printAlign(false)
+            , stopFirstError(false)
+
         {
             for (int i = 1; i < argc; ++i)
             {
@@ -518,6 +532,10 @@ namespace Test
                 {
                     workThreads = FromString<size_t>(arg.substr(4, arg.size() - 4));
                 }
+                else if (arg.find("-sf=") ==0 )
+                {
+                    stopFirstError = FromString<bool>(arg.substr(4, arg.size() - 4));
+                }
                 else
                 {
                     TEST_LOG_SS(Error, "Unknown command line options: '" << arg << "'!" << std::endl);
@@ -547,8 +565,13 @@ namespace Test
 
     int MakeAutoTests(const Groups & groups, const Options & options)
     {
+
+        bool stopped = false;
+        bool error= false;
         if (options.testThreads > 0)
         {
+            Task::Task::s_no_error.test_and_set();
+            Task::Task::s_running.test_and_set();
             TEST_LOG_SS(Info, "Test threads count = " << options.testThreads);
 
             Test::Log::s_log.SetLevel(Test::Log::Error);
@@ -561,7 +584,7 @@ namespace Test
             {
                 size_t begin = i * block;
                 size_t end = std::min(total, begin + block);
-                tasks.push_back(Test::TaskPtr(new Test::Task(groups.begin() + begin, groups.begin() + end, true)));
+                tasks.push_back(Test::TaskPtr(new Test::Task(groups.begin() + begin, groups.begin() + end, true,options.stopFirstError)));
             }
 
             std::cout << std::endl;
@@ -570,22 +593,29 @@ namespace Test
             {
                 progress = 0;
                 for (size_t i = 0; i < tasks.size(); ++i)
+                {
                     progress += tasks[i]->Progress();
+                    if (tasks[i]->s_running.test_and_set()==false)
+                        stopped = true;
+                    if (tasks[i]->s_no_error.test_and_set()==false)
+                        error=true;
+                }
                 progress /= double(tasks.size());
-                std::cout << "\rTest progress: " << std::fixed << std::setprecision(1) << progress*100.0 << "%";
+                std::cout << "\rTest progress: " << std::fixed << std::setprecision(1) << progress*100.0 << "% " << (error?"[ERROR]":"[OK]") <<" " << (stopped?"[STOPPING]":"[RUNNING]");
                 Test::Sleep(40);
-            } while (progress < 1.0 && !Test::Task::s_stopped);
+            } while (progress < 1.0 && !stopped);
             std::cout << std::endl << std::endl;
 
             Test::Log::s_log.SetLevel(Test::Log::Info);
         }
         else
         {
-            Test::Task task(groups.begin(), groups.end(), false);
+            Test::Task task(groups.begin(), groups.end(), false,options.stopFirstError);
             task.Run();
         }
 
-        if (Test::Task::s_stopped)
+
+        if (error)
             return 1;
 
         TEST_LOG_SS(Info, "ALL TESTS ARE FINISHED SUCCESSFULLY!" << std::endl);
@@ -670,6 +700,7 @@ namespace Test
         std::cout << "    -s=sample.avi a video source (Simd::Motion test)." << std::endl << std::endl;
         std::cout << "    -wt=1         a thread number used to parallelize algorithms." << std::endl << std::endl;
         std::cout << "    -fe=Abs       an exclude filter to exclude some tests." << std::endl << std::endl;
+        std::cout << "    -sf=1         stop tests execution of first failure, otherwise (-sf=0) will runs all tests. " << std::endl << std::endl;
         return 0;
     }
 
@@ -715,6 +746,9 @@ int main(int argc, char* argv[])
         for (size_t i = 0; i < options.exclude.size(); ++i)
             ss << "'" << options.exclude[i] << "' ";
         ss << std::endl;
+        ss << "  List of possible tests: " << std::endl;
+        for (const auto & group : Test::g_groups)
+            ss << " " << group.name << std::endl;
         TEST_LOG_SS(Error, ss.str());
         return 1;
     }
