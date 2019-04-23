@@ -3,10 +3,10 @@ lib/
 
 # CMake
 build/
-cmake-build-*/
 
 # CLion
 .idea/
+cmake-build-*/
 
 # Visual Studio
 *.vcxproj.user
