@@ -602,7 +602,8 @@ namespace Test
                 }
                 progress /= double(tasks.size());
                 std::cout << "\rTest progress: " << std::fixed << std::setprecision(1) << progress*100.0 << "% " << (error?"[ERROR]":"[OK]") <<" " << (stopped?"[STOPPING]":"[RUNNING]");
-                Test::Sleep(40);
+                std::cout.flush();
+                Test::Sleep(100);
             } while (progress < 1.0 && !stopped);
             std::cout << std::endl << std::endl;
 
