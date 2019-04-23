@@ -60,6 +60,13 @@ else()
     message(FATAL_ERROR "Unknown value of CMAKE_BUILD_TYPE!")
 endif()
 
+# Assign library name
+set(SIMD_LIB_NAME_OPTS "Simd")
+set(SIMD_LIB_NAME_OPTS "${SIMD_LIB_NAME_OPTS}-sse")
+if (AVX512)
+    set(SIMD_LIB_NAME_OPTS "${SIMD_LIB_NAME_OPTS}-avx2")
+endif()
+
 if((CMAKE_SYSTEM_PROCESSOR STREQUAL "i686") OR (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
 
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "i686")
@@ -67,6 +74,8 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "i686")
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
     set(COMMON_CXX_FLAGS "${COMMON_CXX_FLAGS} -m64")
 endif()
+
+    file(GLOB_RECURSE SIMD_LIBRARY_HEADER ${TRUNK_DIR}/src/Simd/*.h)
 
     file(GLOB_RECURSE SIMD_BASE_SRC ${TRUNK_DIR}/src/Simd/SimdBase*.cpp)
     set_source_files_properties(${SIMD_BASE_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS}")
@@ -102,6 +111,7 @@ endif()
     set(SIMD_LIB_FLAGS "${COMMON_CXX_FLAGS} -mavx2")
     set(SIMD_ALG_SRC ${SIMD_BASE_SRC} ${SIMD_SSE1_SRC} ${SIMD_SSE2_SRC} ${SIMD_SSE3_SRC} ${SIMD_SSSE3_SRC} ${SIMD_SSE41_SRC} ${SIMD_SSE42_SRC} ${SIMD_AVX1_SRC} ${SIMD_AVX2_SRC})
 
+
     if((((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER MATCHES "gnu")) AND (NOT(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.5.0"))) OR (CMAKE_CXX_COMPILER MATCHES "clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))    
         file(GLOB_RECURSE SIMD_AVX512F_SRC ${TRUNK_DIR}/src/Simd/SimdAvx512f*.cpp)
         set_source_files_properties(${SIMD_AVX512F_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} -mavx512f -mavx512dq -mfma")
@@ -118,7 +128,7 @@ endif()
 
     file(GLOB_RECURSE SIMD_LIB_SRC ${TRUNK_DIR}/src/Simd/SimdLib.cpp)
     set_source_files_properties(${SIMD_LIB_SRC} PROPERTIES COMPILE_FLAGS "${SIMD_LIB_FLAGS}")
-    add_library(Simd ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_ALG_SRC})
+    add_library(${SIMD_LIB_NAME_OPTS} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_ALG_SRC})
 
     if(SIMD_TEST)
         file(GLOB_RECURSE TEST_SRC_C ${TRUNK_DIR}/src/Test/*.c)
@@ -132,7 +142,7 @@ endif()
             set_source_files_properties(${TEST_SRC_CPP} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${TEST_FLAGS} -mtune=native")
         endif()
         add_executable(Test ${TEST_SRC_C} ${TEST_SRC_CPP})
-        target_link_libraries(Test Simd -lpthread)
+        target_link_libraries(Test ${SIMD_LIB_NAME_OPTS} -lpthread)
     endif()
 
 elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc") OR (CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc64"))
@@ -148,7 +158,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc") OR (CMAKE_SYSTEM_PROCESSOR STREQU
 
     file(GLOB_RECURSE SIMD_LIB_SRC ${TRUNK_DIR}/src/Simd/SimdLib.cpp)
     set_source_files_properties(${SIMD_LIB_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} -mvsx")
-    add_library(Simd ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_VMX_SRC} ${SIMD_VSX_SRC})
+    add_library(${SIMD_LIB_NAME_OPTS} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_VMX_SRC} ${SIMD_VSX_SRC})
 
     if(SIMD_TEST)
         file(GLOB_RECURSE TEST_SRC_C ${TRUNK_DIR}/src/Test/*.c)
@@ -159,7 +169,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc") OR (CMAKE_SYSTEM_PROCESSOR STREQU
             set_source_files_properties(${TEST_SRC_CPP} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${TEST_FLAGS} -mtune=native")
         endif()
         add_executable(Test ${TEST_SRC_C} ${TEST_SRC_CPP})
-        target_link_libraries(Test Simd -lpthread)
+        target_link_libraries(Test ${SIMD_LIB_NAME_OPTS} -lpthread)
     endif()
 
 elseif((CMAKE_SYSTEM_PROCESSOR MATCHES "arm") OR (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64"))
@@ -186,7 +196,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR MATCHES "arm") OR (CMAKE_SYSTEM_PROCESSOR STREQUA
 
     file(GLOB_RECURSE SIMD_LIB_SRC ${TRUNK_DIR}/src/Simd/SimdLib.cpp)
     set_source_files_properties(${SIMD_LIB_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${CXX_NEON_FLAG}")
-    add_library(Simd ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_NEON_SRC})
+    add_library(${SIMD_LIB_NAME_OPTS} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_NEON_SRC})
 
     if(SIMD_TEST)
         file(GLOB_RECURSE TEST_SRC_C ${TRUNK_DIR}/src/Test/*.c)
@@ -197,7 +207,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR MATCHES "arm") OR (CMAKE_SYSTEM_PROCESSOR STREQUA
             set_source_files_properties(${TEST_SRC_CPP} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${TEST_FLAGS} -mtune=native -D_GLIBCXX_USE_NANOSLEEP")
         endif()
         add_executable(Test ${TEST_SRC_C} ${TEST_SRC_CPP})
-        target_link_libraries(Test Simd -lpthread)
+        target_link_libraries(Test ${SIMD_LIB_NAME_OPTS} -lpthread)
     endif()
 
 elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "mips"))
@@ -214,7 +224,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "mips"))
 
     file(GLOB_RECURSE SIMD_LIB_SRC ${TRUNK_DIR}/src/Simd/SimdLib.cpp)
     set_source_files_properties(${SIMD_LIB_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${CXX_MSA_FLAG}")
-    add_library(Simd ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_MSA_SRC})
+    add_library(${SIMD_LIB_NAME_OPTS} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_MSA_SRC})
 
     if(SIMD_TEST)
         file(GLOB_RECURSE TEST_SRC_C ${TRUNK_DIR}/src/Test/*.c)
@@ -226,7 +236,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "mips"))
             set_source_files_properties(${TEST_SRC_CPP} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${TEST_FLAGS} -mtune=native")# -D_GLIBCXX_USE_NANOSLEEP")
         endif()
         add_executable(Test ${TEST_SRC_C} ${TEST_SRC_CPP})
-        target_link_libraries(Test Simd -lpthread "${CMAKE_MODULE_LINKER_FLAGS} -EL")
+        target_link_libraries(Test ${SIMD_LIB_NAME_OPTS} -lpthread "${CMAKE_MODULE_LINKER_FLAGS} -EL")
     endif()
 
 else()
