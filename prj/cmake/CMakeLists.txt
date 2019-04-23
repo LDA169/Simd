@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
-option(AVX512 "AVX512 enable" ON)
-option(SIMD_TEST "Test framework enable" ON)
-option(PRINT_INFO "Print build information" ON)
+option(AVX512           "AVX512 enable"             ON)
+option(SIMD_TEST        "Test framework enable"     ON)
+option(PRINT_INFO       "Print build information"   ON)
 
 set(TRUNK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 
