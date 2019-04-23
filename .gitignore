@@ -5,6 +5,8 @@ lib/
 build/
 cmake-build-*/
 
+# CLion
+.idea/
 
 # Visual Studio
 *.vcxproj.user
