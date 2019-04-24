@@ -1,4 +1,17 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.10)
+
+# Necessary for Version
+if (POLICY CMP0048)
+    cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
+
+set(LIB_MAJOR_VERSION "4")
+set(LIB_MINOR_VERSION "3")
+set(LIB_PATCH_VERSION "76")
+set(LIB_VERSION_STRING "${LIB_MAJOR_VERSION}.${LIB_MINOR_VERSION}.${LIB_PATCH_VERSION}")
+
+
+project (SimdLibrary LANGUAGES CXX VERSION "${LIB_VERSION_STRING}")
 
 option(AVX512           "AVX512 enable"             ON)
 option(SIMD_TEST        "Test framework enable"     ON)
@@ -61,10 +74,10 @@ else()
 endif()
 
 # Assign library name
-set(SIMD_LIB_NAME_OPTS "Simd")
-set(SIMD_LIB_NAME_OPTS "${SIMD_LIB_NAME_OPTS}-sse")
+set(LIBRARY_TARGET_NAME "Simd")
+set(LIBRARY_TARGET_NAME "${LIBRARY_TARGET_NAME}-sse")
 if (AVX512)
-    set(SIMD_LIB_NAME_OPTS "${SIMD_LIB_NAME_OPTS}-avx2")
+    set(LIBRARY_TARGET_NAME "${LIBRARY_TARGET_NAME}-avx2")
 endif()
 
 if((CMAKE_SYSTEM_PROCESSOR STREQUAL "i686") OR (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
@@ -75,7 +88,8 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
     set(COMMON_CXX_FLAGS "${COMMON_CXX_FLAGS} -m64")
 endif()
 
-    file(GLOB_RECURSE SIMD_LIBRARY_HEADER ${TRUNK_DIR}/src/Simd/*.h)
+    file(GLOB_RECURSE SIMD_LIBRARY_HEADERS ${TRUNK_DIR}/src/Simd/*.h)
+
 
     file(GLOB_RECURSE SIMD_BASE_SRC ${TRUNK_DIR}/src/Simd/SimdBase*.cpp)
     set_source_files_properties(${SIMD_BASE_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS}")
@@ -128,7 +142,7 @@ endif()
 
     file(GLOB_RECURSE SIMD_LIB_SRC ${TRUNK_DIR}/src/Simd/SimdLib.cpp)
     set_source_files_properties(${SIMD_LIB_SRC} PROPERTIES COMPILE_FLAGS "${SIMD_LIB_FLAGS}")
-    add_library(${SIMD_LIB_NAME_OPTS} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_ALG_SRC})
+    add_library(${LIBRARY_TARGET_NAME} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_ALG_SRC})
 
     if(SIMD_TEST)
         file(GLOB_RECURSE TEST_SRC_C ${TRUNK_DIR}/src/Test/*.c)
@@ -142,7 +156,7 @@ endif()
             set_source_files_properties(${TEST_SRC_CPP} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${TEST_FLAGS} -mtune=native")
         endif()
         add_executable(Test ${TEST_SRC_C} ${TEST_SRC_CPP})
-        target_link_libraries(Test ${SIMD_LIB_NAME_OPTS} -lpthread)
+        target_link_libraries(Test ${LIBRARY_TARGET_NAME} -lpthread)
     endif()
 
 elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc") OR (CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc64"))
@@ -158,7 +172,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc") OR (CMAKE_SYSTEM_PROCESSOR STREQU
 
     file(GLOB_RECURSE SIMD_LIB_SRC ${TRUNK_DIR}/src/Simd/SimdLib.cpp)
     set_source_files_properties(${SIMD_LIB_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} -mvsx")
-    add_library(${SIMD_LIB_NAME_OPTS} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_VMX_SRC} ${SIMD_VSX_SRC})
+    add_library(${LIBRARY_TARGET_NAME} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_VMX_SRC} ${SIMD_VSX_SRC})
 
     if(SIMD_TEST)
         file(GLOB_RECURSE TEST_SRC_C ${TRUNK_DIR}/src/Test/*.c)
@@ -169,7 +183,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc") OR (CMAKE_SYSTEM_PROCESSOR STREQU
             set_source_files_properties(${TEST_SRC_CPP} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${TEST_FLAGS} -mtune=native")
         endif()
         add_executable(Test ${TEST_SRC_C} ${TEST_SRC_CPP})
-        target_link_libraries(Test ${SIMD_LIB_NAME_OPTS} -lpthread)
+        target_link_libraries(Test ${LIBRARY_TARGET_NAME} -lpthread)
     endif()
 
 elseif((CMAKE_SYSTEM_PROCESSOR MATCHES "arm") OR (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64"))
@@ -196,7 +210,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR MATCHES "arm") OR (CMAKE_SYSTEM_PROCESSOR STREQUA
 
     file(GLOB_RECURSE SIMD_LIB_SRC ${TRUNK_DIR}/src/Simd/SimdLib.cpp)
     set_source_files_properties(${SIMD_LIB_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${CXX_NEON_FLAG}")
-    add_library(${SIMD_LIB_NAME_OPTS} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_NEON_SRC})
+    add_library(${LIBRARY_TARGET_NAME} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_NEON_SRC})
 
     if(SIMD_TEST)
         file(GLOB_RECURSE TEST_SRC_C ${TRUNK_DIR}/src/Test/*.c)
@@ -207,7 +221,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR MATCHES "arm") OR (CMAKE_SYSTEM_PROCESSOR STREQUA
             set_source_files_properties(${TEST_SRC_CPP} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${TEST_FLAGS} -mtune=native -D_GLIBCXX_USE_NANOSLEEP")
         endif()
         add_executable(Test ${TEST_SRC_C} ${TEST_SRC_CPP})
-        target_link_libraries(Test ${SIMD_LIB_NAME_OPTS} -lpthread)
+        target_link_libraries(Test ${LIBRARY_TARGET_NAME} -lpthread)
     endif()
 
 elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "mips"))
@@ -224,7 +238,7 @@ elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "mips"))
 
     file(GLOB_RECURSE SIMD_LIB_SRC ${TRUNK_DIR}/src/Simd/SimdLib.cpp)
     set_source_files_properties(${SIMD_LIB_SRC} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${CXX_MSA_FLAG}")
-    add_library(${SIMD_LIB_NAME_OPTS} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_MSA_SRC})
+    add_library(${LIBRARY_TARGET_NAME} ${LIBRARY} ${SIMD_LIB_SRC} ${SIMD_BASE_SRC} ${SIMD_MSA_SRC})
 
     if(SIMD_TEST)
         file(GLOB_RECURSE TEST_SRC_C ${TRUNK_DIR}/src/Test/*.c)
@@ -236,9 +250,64 @@ elseif((CMAKE_SYSTEM_PROCESSOR STREQUAL "mips"))
             set_source_files_properties(${TEST_SRC_CPP} PROPERTIES COMPILE_FLAGS "${COMMON_CXX_FLAGS} ${TEST_FLAGS} -mtune=native")# -D_GLIBCXX_USE_NANOSLEEP")
         endif()
         add_executable(Test ${TEST_SRC_C} ${TEST_SRC_CPP})
-        target_link_libraries(Test ${SIMD_LIB_NAME_OPTS} -lpthread "${CMAKE_MODULE_LINKER_FLAGS} -EL")
+        target_link_libraries(Test ${LIBRARY_TARGET_NAME} -lpthread "${CMAKE_MODULE_LINKER_FLAGS} -EL")
     endif()
 
 else()
     message(FATAL_ERROR "Unknown value of CMAKE_SYSTEM_PROCESSOR!")
 endif()
+
+
+
+# Copy all headers to the destination folder
+
+message (INFO "CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
+message (INFO "SIMD_LIBRARY_HEADERS = ${SIMD_LIBRARY_HEADERS}")
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/Simd)
+file(COPY ${SIMD_LIBRARY_HEADERS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/include/Simd)
+
+# Export the library: define an alias of the library with the scope of the exported library itself
+add_library(${PROJECT_NAME}::${LIBRARY_TARGET_NAME} ALIAS ${LIBRARY_TARGET_NAME})
+# Set the minimum target property for a library:
+# Library version number
+# List of corresponding public headers
+set_target_properties(${LIBRARY_TARGET_NAME}
+        PROPERTIES VERSION  ${${PROJECT_NAME}_VERSION}
+        PUBLIC_HEADER "${${SIMD_LIBRARY_HEADERS}}"
+        )
+
+# Specify include directories for both compilation and installation process.
+# The $<INSTALL_PREFIX> generator expression is useful to ensure to create
+# relocatable configuration files, see https://cmake.org/cmake/help/latest/manual/cmake-packages.7.html#creating-relocatable-packages
+
+target_include_directories(${LIBRARY_TARGET_NAME}
+        PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+        "$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>")
+
+
+
+
+# If you used find_package() you need to use target_include_directories() and/or
+# target_link_libraries(). As explained previously, depending on the imported
+# objects, you may need to call either or both:
+# - with imported variable:
+#   target_include_directories(${LIBRARY_TARGET_NAME} ${FooPackage_INCLUDE_DIRS})
+#   target_link_libraries(${LIBRARY_TARGET_NAME} ${FooPackage_LIBRARIES})
+# - with imported target:
+#   target_link_libraries(${LIBRARY_TARGET_NAME} FooPackage_LIBRARIES::FooPackage_LIBRARIES)
+
+message (INFO " CMAKE_INSTALL_INCLUDEDIR=${CMAKE_INSTALL_INCLUDEDIR}")
+message (INFO " LIBRARY_TARGET_NAME=${LIBRARY_TARGET_NAME}")
+
+# Specify installation targets, typology and destination folders.
+install(TARGETS ${LIBRARY_TARGET_NAME}
+        EXPORT  ${PROJECT_NAME}
+        LIBRARY       DESTINATION lib           COMPONENT shlib          # Modules
+        ARCHIVE       DESTINATION lib/static    COMPONENT lib            # Static libraries
+        RUNTIME       DESTINATION bin           COMPONENT bin
+        PUBLIC_HEADER DESTINATION include       COMPONENT dev)
+
+# Deploy all headers files in the include/Simd folder
+install (DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/include/Simd DESTINATION include)
+
+message(STATUS "Created target ${LIBRARY_TARGET_NAME} for export ${PROJECT_NAME}.")

@@ -102,6 +102,25 @@ And for ARM (64 bit):
 
 As result the library and the test application will be built in the current directory.
 
+Install the library in the system
+=================================
+
+To install the library:
+sudo make install
+
+Files are by default installed like this:
+
+-- Install configuration: "Release"
+
+-- Up-to-date: /usr/local/lib/static/libSimd-sse-avx2.a
+
+-- Installing: /usr/local/include/Simd
+
+-- Installing: /usr/local/include/Simd/SimdBayer.h
+
+.......
+
+
 The library using
 =================
 
